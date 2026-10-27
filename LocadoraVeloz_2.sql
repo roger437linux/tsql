@@ -5,88 +5,165 @@
 -- só mudando a forma de mostrar.
 
 
+SELECT TOP 5 TRIM(c.Nome) as Cliente,
+CASE
+    WHEN c.Email IS NULL THEN ' '
+    ELSE LOWER(TRIM(c.Email))
+END AS Email,
+CASE
+    WHEN LEN(TRIM(c.CPF)) = 11
+        THEN STUFF(STUFF(STUFF(TRIM(c.CPF), 10, 0, '-'), 7, 0, '.'), 4, 0, '.')
+    WHEN LEN(c.CPF) = 9
+        THEN STUFF(STUFF(TRIM(c.CPF), 7, 0, '.'), 4, 0, '.')
+    ELSE c.CPF
+END AS Cpf,
+CASE
+    WHEN SUBSTRING(TRIM(v.Placa), 4, 1) != ' ' THEN STUFF(TRIM(v.Placa), 4, 0, ' ') 
+END AS Placa
+FROM Clientes c
+INNER JOIN Locacoes l
+ON c.IdCliente = l.IdCliente
+INNER JOIN Veiculos v
+ON v.IdVeiculo = l.IdVeiculo;
+
+
+-- ---------------------------------------
+
+-- Declaração e inicialização de variável
+
 DECLARE @NomeLoja VARCHAR(100) = 'Locadora Veloz';
--- declare @DataAtual date = '2026-10-26';
 DECLARE @DataAtual DATE = GETDATE();
+DECLARE @DataHora DATETIME2 = SYSDATETIME();
 DECLARE @DiariaBase DECIMAL(10,2);		-- Não inicializada fica com valor NULL
 
 SET @DiariaBase = 120.00;
 
-SELECT @NomeLoja AS Loja, @DataAtual AS Data, @DiariaBase AS Diaria;
-
--- -----------------------------------------------------------------------
-
-declare @TotalClientes int;
-set @TotalClientes = (select count(*)  from Clientes);
-print 'Total clientes cadastrador: ' + cast(@TotalClientes as varchar(10));
-print concat('Total clientes cadastrador: ', @TotalClientes);
-print(sqrt(@TotalClientes) * 2);
+SELECT  @NomeLoja AS Loja, 
+        @DataAtual AS Data,
+        @DataHora AS DataHora,
+        @DiariaBase AS Diaria;
 
 
--- -----------------------------------------------------------------------
+-- ---------------------------------------
 
 
-declare @Cidade varchar(50) = 'Campinas';
+-- Atribuir valor em variável a partir do SELECT
 
-select trim(Nome), Cidade
-from Clientes
-where Cidade = @Cidade;
+DECLARE @TotalClientes INT;
 
+SET @TotalClientes = (SELECT COUNT(*)  FROM Clientes);
 
--- -----------------------------------------------------------------------
-
-print upper('locadora veloz');
-print lower('Locadora Veloz');
-
-print len('locadora veloz');
-
-print trim('           locadora veloz   ')
-print rtrim('           locadora veloz   ')
-print rtrim('           locadora veloz   ')
-
-print left('locadora', 3);
-print right('locadora', 3);
-
--- Slice
--- texto, posição inicial, qtde
-print substring('1234567899', 5, 3);
+PRINT 'Total clientes cadastrador: ' + CAST(@TotalClientes AS VARCHAR(10));
+PRINT CONCAT('Total clientes cadastrador: ', @TotalClientes);
+PRINT(SQRT(@TotalClientes + 5) * 2);
 
 
--- charindex -> Posição do caracter
-print charindex('@', 'tux@email.com');
+-- ---------------------------------------
 
-print replace('120.00', '.', ',')
+-- Função TRIM
+DECLARE @Cidade VARCHAR(50) = 'Campinas';
 
-print concat('Valor a pagar R$ ', 500, ',00')
+SELECT TRIM(Nome), Cidade
+FROM Clientes
+WHERE Cidade = @Cidade;
 
 
--- -----------------------------------------------------------------------
+-- ---------------------------------------
+
+-- Funções: UPPER, LOWER, LEN, RTRIM, LTRIM
+
+PRINT UPPER('locadora veloz');
+PRINT LOWER('Locadora Veloz');
+
+PRINT LEN('locadora veloz');
+
+PRINT TRIM ('           Locadora Veloz        ')
+PRINT RTRIM('           Locadora Veloz        ')
+PRINT LTRIm('           Locadora Veloz        ')
+
+
+-- ---------------------------------------
+
+-- Funções para slice e cut
+
+-- Função LEFT E RIGHT 
+
+PRINT LEFT ('locadora', 3);     -- Conta e corta depois a partir da esquerda
+PRINT RIGHT('locadora', 3);     -- Conta e corta depois a partir da direita
+
+
+-- Função SUBSTRING
+
+PRINT SUBSTRING('La Casa de Papel', 4, 7);    -- Argumentos: Texto, Posição inicial, Qtde para manter
+
+
+-- ---------------------------------------
+
+
+-- CONCATENAR
+
+PRINT CONCAT('Valor a pagar R$ ', 500, ',00');
+
+DECLARE @Totale NUMERIC(10, 2) = 500.00;
+PRINT CONCAT('Total: R$ ', @Totale)
+
+
+-- CHAR INDEX -> Posição do caracter
+
+DECLARE @Pos INT = (SELECT CHARINDEX('@', 'tux@email.com'));
+PRINT CONCAT('Posição do caracter: ', @Pos);
+
+
+-- REPLACE
+
+PRINT REPLACE('120.00', '.', '?');
+
+
+-- ---------------------------------------
+
 
 -- Funções de conversão
--- cast e convert
 
-declare @Total int = 15;
-print 'Temos ' + cast(@Total as varchar(10)) + ' carros';
-print 'Temos ' + convert(varchar(10), @Total) + ' carros';
-print concat('Temos ', @Total, ' carros');
+-- CAST E CONVERT
+
+DECLARE @Total INT = 15;
+PRINT 'Temos ' + CAST(@Total AS VARCHAR(10)) + ' carros';
+PRINT 'Temos ' + CONVERT(VARCHAR(10), @Total) + ' carros';
+PRINT CONCAT('Temos ', @Total, ' carros');
 
 
--- Convert para datas
--- 103 dd/mm/yyyy
--- 23  yyyy/mm/dd
--- 113 yyyymmdd
+-- CONVERT PARA DATAS
+-- 103 DD/MM/YYYY
+-- 23  YYYY/MM/DD
+-- 113 YYYYMMDD
 
--- convert(varchar(10), ColunaData, tipoPadrao)
 
 -- Formatação de valores monetários
-select concat ('R$ ', replace(ValorDiaria, '.',',')) from Categorias;
 
--- -----------------------------------------------------------------------
+SELECT CONCAT ('R$ ', REPLACE(ValorDiaria, '.',',')) AS 'Valor diária' FROM Categorias;
 
 
-select trim(c.Nome) as Cliente, lower(c.Email) as 'E-mail', c.CPF, v.Placa from Clientes c
-inner join Locacoes l
-on c.IdCliente = l.IdCliente
-inner join Veiculos v
-on v.IdVeiculo = l.IdVeiculo;
+-- ---------------------------------------
+
+
+-- Função  STUFF
+-- Excluir trecho de string e no mesmo lugar, inserir novo caracter
+
+-- STUFF (Text, Start, Length, Replace with expression )
+
+SELECT TOP(5) 
+STUFF(Cpf, 10, 0, ' *** ') 
+FROM Clientes;
+
+
+-- ---------------------------------------
+
+-- Laço WHILE
+
+DECLARE @contador INT = 1;
+WHILE @contador <= 10
+BEGIN
+    PRINT @contador;
+    SET @contador = @contador + 1;
+END
 
