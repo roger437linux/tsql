@@ -16,7 +16,7 @@ CONVERT(VARCHAR(10), @Hoje, 103) AS 'Data';
 -- Q2. Liste o nome de todos os clientes padronizado: sem espaços sobrando e em maiúsculas.
 
 SELECT 
-UPPER(TRIM(TRIM(Nome )) AS 'Nome cliente'
+UPPER(TRIM(Nome)) AS 'Nome cliente'
 FROM Clientes;
 
 
@@ -33,16 +33,16 @@ FROM Veiculos;
 
 
 DECLARE @Cidade VARCHAR(100) = 'Valinhos';
-SELECT TRIM(Nome), 
-STUFF(STUFF(TRIM(Telefone), 3, 0, ' '), 9, 0, '-'), 
-TRIM(Cidade)
+SELECT TRIM(Nome) AS Nome_cliente, 
+STUFF(STUFF(TRIM(Telefone), 3, 0, ' '), 9, 0, '-') AS Telefone, 
+TRIM(Cidade) AS Cidade
 FROM Clientes
 WHERE Cidade = @Cidade;
 
 SET @Cidade = 'Campinas'
-SELECT TRIM(Nome), 
-STUFF(STUFF(TRIM(Telefone), 3, 0, ' '), 9, 0, '-'), 
-TRIM(Cidade)
+SELECT TRIM(Nome) AS Nome_cliente, 
+STUFF(STUFF(TRIM(Telefone), 3, 0, ' '), 9, 0, '-') AS Telefone, 
+TRIM(Cidade) AS Cidade
 FROM Clientes
 WHERE Cidade = @Cidade;
 
@@ -52,8 +52,8 @@ WHERE Cidade = @Cidade;
 -- Q5. Mostre o nome e o CPF formatado de todos os clientes, no padrão 529.982.247-25.
 
 SELECT 
-TRIM(Nome),
-STUFF(STUFF(STUFF(CPF, 4, 0, '.'), 8, 0, '.'), 12, 0, '-')
+TRIM(Nome) AS Nome_cliente,
+STUFF(STUFF(STUFF(CPF, 4, 0, '.'), 8, 0, '.'), 12, 0, '-') AS Cpf
 FROM Clientes;
 
 
@@ -99,25 +99,36 @@ ORDER BY Qtde_clientes DESC;
 
 -- Q9. Encontre os clientes com espaços sobrando no começo ou no fim do nome.
 
-SELECT
-CASE
-	WHEN CHARINDEX(' ', Nome) = 1 THEN TRIM(Nome)
-	WHEN CHARINDEX(' ', RIGHT(Nome, 1)) > 0 THEN TRIM(Nome)
-	ELSE ''
-END AS Cliente
-FROM Clientes;
+WITH clientes_cte AS (
+	SELECT
+	CASE
+		WHEN CHARINDEX(' ', Nome) = 1 THEN TRIM(Nome)
+		WHEN CHARINDEX(' ', RIGHT(Nome, 1)) > 0 THEN TRIM(Nome)		
+	END AS Cliente
+	FROM Clientes
+) 
+SELECT Cliente FROM clientes_cte
+WHERE Cliente IS NOT NULL;
 
 
 -- Q10. Crie a variável @IdLocacao com o valor 144 e gere uma única coluna Comprovante com o texto:
 --      Locação 144 | Cliente: BRUNO CARVALHO | Veículo: Jeep Renegade (RST-8M56) | Retirada: 20/10/2026 | Diária: R$ 240,00
 
-DECLARE @IdLocacao INT = 144;
 
-SELECT Locacoes.IdLocacao, Clientes.Nome, Veiculos.Marca, Veiculos.Modelo, Veiculos.Placa, Locacoes.DataRetirada, Locacoes.ValorDiaria
+DECLARE @IdLocacao INT = 144;
+SELECT
+CONCAT(
+		'Locação ', Locacoes.IdLocacao, 
+		' | Cliente: ', Clientes.Nome, 
+		' | Veículo: ', Veiculos.Marca, 
+		' ', Veiculos.Modelo, 
+		' (', STUFF(Veiculos.Placa, 4, 0, '-'), ')', 
+		' | Retirada: ', CONVERT(VARCHAR(10), Locacoes.DataRetirada, 103), 
+		' | Diária: R$ ', REPLACE(Locacoes.ValorDiaria, '.', ',')
+) AS Comprovante
 FROM Clientes
 INNER JOIN Locacoes
 ON Clientes.IdCliente = Locacoes.IdCliente
 INNER JOIN Veiculos
 ON Veiculos.IdVeiculo = Locacoes.IdVeiculo
 WHERE Locacoes.IdLocacao = @IdLocacao;
-
