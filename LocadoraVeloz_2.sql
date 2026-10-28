@@ -137,6 +137,7 @@ PRINT CONCAT('Temos ', @Total, ' carros');
 -- 23  YYYY/MM/DD
 -- 113 YYYYMMDD
 
+SELECT CONVERT(VARCHAR(10), GETDATE(), 103) AS DataFormatada;
 
 -- Formatação de valores monetários
 
