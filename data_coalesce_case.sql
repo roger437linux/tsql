@@ -117,3 +117,22 @@ where Locacoes.Status != 'Cancelada';
 
 -- -------------------------------------------------------------
 
+-- CASE
+
+select Modelo, Quilometragem,
+case
+	when Quilometragem < 35e3 then 'NOVO'
+	when Quilometragem < 50e3 then 'SEMINOVO'
+	else 'RODADO'
+end AS Estado
+FROM Veiculos;
+
+
+select IdLocacao,
+case status
+	when 'Finalizada' then 'Encerrado'
+	when 'Em andamento' then 'Com o cliente'
+	when 'Cancelada' then 'Contrato encerrado'
+	else 'Não ocorreu locãção'
+end as situacao
+from Locacoes;
