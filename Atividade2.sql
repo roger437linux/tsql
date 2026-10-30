@@ -78,20 +78,30 @@ where Status = 'Finalizada' and
 datediff(day, DataRetirada, DataDevolucao) > 0;
 
 
--- Q7. Em uma única linha, mostre quantas locações estão finalizadas, quantas em andamento e quantas canceladas, cada uma numa coluna.
+-- Q7. Em uma única linha, mostre quantas locações estão finalizadas, quantas em andamento e quantas canceladas, 
+--     cada uma numa coluna.
 
-
-declare @Finalizadas varchar(20) = (select count(*) from Locacoes where Status = 'Finalizada');
-declare @Andamento varchar(20)   = (select count(*) from Locacoes where Status = 'Em andamento');
-declare @Cancelada varchar(20)   = (select count(*) from Locacoes where Status = 'Cancelada');
-select @Finalizadas as Finalizadas, @Andamento as Andamento, @Cancelada as Canceladas;
+declare @Finalizadas int = (select count(*) from Locacoes where Status = 'Finalizada');
+declare @Andamento int   = (select count(*) from Locacoes where Status = 'Em andamento');
+declare @Cancelada int   = (select count(*) from Locacoes where Status = 'Cancelada');
+select @Finalizadas as Finalizadas, @Andamento as Andamento, 
+       @Cancelada as Canceladas, (@Finalizadas + @Andamento + @Cancelada) as Total_Locacoes;
 
 
 -- Nível 3 — Desafio
 
-
 -- Q8. Calcule a idade de cada cliente em @Hoje. Primeiro só com DATEDIFF(YEAR, ...); 
 --     depois, a idade certa. Para quais clientes a primeira forma erra?
+
+declare @Hoji date = getdate();
+select Nome, DataNascimento,
+datediff(year, DataNascimento, @Hoji) as idade_error,
+datediff(year, DataNascimento, @Hoji) -
+case
+	when dateadd(year, datediff(year, DataNascimento, @Hoji), DataNascimento) > @Hoji then 1
+	else 0
+end as idade
+from Clientes;
 
 
 -- Q9. Seu Ricardo está pensando em cobrar multa de 1 diária por dia de atraso. 
@@ -99,6 +109,41 @@ select @Finalizadas as Finalizadas, @Andamento as Andamento, @Cancelada as Cance
 --     quantos dias de atraso somaram e quanto a multa teria rendido?
 
 
+with locacoes_cte as (
+	select DataPrevistaDevolucao, DataDevolucao, ValorDiaria,
+	DATEDIFF(day, DataPrevistaDevolucao, DataDevolucao) as dias_atraso,
+	Status
+	from Locacoes
+	where Status = 'Finalizada'
+)
+select count(*) as qtde_devol_pos_prazo,
+sum(dias_atraso) as total_dias_atraso, 
+sum(ValorDiaria * dias_atraso) as soma_total_valor_multa 
+from locacoes_cte
+where dias_atraso > 0;
+
+
 -- Q10. Liste os clientes que fazem aniversário nos próximos 30 dias a partir de @Hoje: 
 --      nome, data do aniversário deste ano no formato dd/mm/aaaa e quantos dias 
 --      faltam, do mais próximo ao mais distante.
+
+DECLARE @Hoje DATE = CAST(GETDATE() AS DATE);
+WITH Aniversarios AS (
+    SELECT
+        Nome,
+        DATEADD(YEAR,
+            CASE
+                WHEN DATEFROMPARTS(YEAR(@Hoje), MONTH(DataNascimento), DAY(DataNascimento)) < @Hoje THEN 1
+                ELSE 0
+            END,
+            DATEFROMPARTS(YEAR(@Hoje), MONTH(DataNascimento), DAY(DataNascimento))
+        ) AS Aniversario
+    FROM Clientes
+)
+SELECT
+    Nome,
+    CONVERT(VARCHAR(10), Aniversario, 103) AS Aniversario,
+    DATEDIFF(DAY, @Hoje, Aniversario) AS DiasRestantes
+FROM Aniversarios
+WHERE Aniversario BETWEEN @Hoje AND DATEADD(DAY, 30, @Hoje)
+ORDER BY DiasRestantes ASC;
