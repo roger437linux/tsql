@@ -123,3 +123,28 @@ where month(DataRetirada) = 10
 
 -- ----- TABELA TEMPORÁRIA -------
 
+-- Primeira  forma
+
+DROP TABLE IF EXISTS #Frota
+
+SELECT IdVeiculo , COUNT(*) AS locacoes,
+SUM(DATEDIFF(DAY, DataRetirada, DataDevolucao)) AS dias_rua
+INTO #Frota
+FROM Locacoes
+WHERE STATUS = 'Finalizada'
+GROUP BY IdVeiculo;
+
+
+SELECT * FROM #Frota;
+
+
+
+-- --------------------------------
+
+
+drop table if exists #Teste
+select Clientes.Nome, Clientes.Email
+into #Teste
+from Clientes;
+
+select * from #Teste;
