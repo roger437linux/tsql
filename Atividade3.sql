@@ -192,13 +192,12 @@ SELECT @@TRANCOUNT;
 
 SELECT TOP(3) * FROM Clientes;
 
--- 1. Nova coluna
+-- Add nova coluna
 ALTER TABLE Clientes ADD Ativo BIT NOT NULL DEFAULT (1);
 
--- 2. Data de hoje
-DECLARE @Hoje DATE = GETDATE();
 
--- 3. Identificar a última retirada de cada cliente
+DECLARE @Hoje DATE = GETDATE();
+-- Identificar a última retirada de cada cliente
 ;WITH UltimaRetirada AS (
     SELECT
         IdCliente,
@@ -206,20 +205,15 @@ DECLARE @Hoje DATE = GETDATE();
     FROM Locacoes
     GROUP BY IdCliente
 )
-
--- 4. Marcar como inativos os clientes
--- cuja última retirada ocorreu há mais de 30 dias
-UPDATE c
-SET Ativo = 0
+UPDATE c SET Ativo = 0      -- Marcar como inativos clientes, última retirada mais de 30 dias
 OUTPUT
     INSERTED.IdCliente,
     INSERTED.Nome,
     INSERTED.Ativo
 FROM Clientes c
 INNER JOIN UltimaRetirada u
-    ON c.IdCliente = u.IdCliente
-WHERE u.DataUltimaRetirada < DATEADD(DAY, -30, @Hoje)
-  AND c.Ativo = 1;
+ON c.IdCliente = u.IdCliente
+WHERE u.DataUltimaRetirada < DATEADD(DAY, -30, @Hoje) AND c.Ativo = 1;
 
 
 ROLLBACK;
