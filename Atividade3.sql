@@ -195,11 +195,11 @@ SELECT TOP(3) * FROM Clientes;
 -- 1. Nova coluna
 ALTER TABLE Clientes ADD Ativo BIT NOT NULL DEFAULT (1);
 
--- 2. Definir a data de referência
+-- 2. Data de hoje
 DECLARE @Hoje DATE = GETDATE();
 
 -- 3. Identificar a última retirada de cada cliente
-WITH UltimaRetirada AS (
+;WITH UltimaRetirada AS (
     SELECT
         IdCliente,
         MAX(DataRetirada) AS DataUltimaRetirada
@@ -221,5 +221,5 @@ INNER JOIN UltimaRetirada u
 WHERE u.DataUltimaRetirada < DATEADD(DAY, -30, @Hoje)
   AND c.Ativo = 1;
 
--- 5. Desfazer todas as alterações
+
 ROLLBACK;
