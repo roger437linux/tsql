@@ -68,6 +68,31 @@ WHERE NOT EXISTS (
 );
 
 
+-- VERSÃO TEACHER --
+
+--Quais veterinários não fizeram nenhum atendimento realizado em setembro de 2026? 
+--Resolva duas vezes: com NOT IN e com NOT EXISTS. Os resultados são iguais? 
+SELECT Nome
+FROM Veterinarios
+WHERE IdVeterinario NOT IN (
+	SELECT IdVeterinario
+	FROM Atendimentos
+	WHERE Status = 'Realizado'
+	AND DataAtendimento >= '2026-09-01' AND DataAtendimento < '2026-10-01'
+);
+
+SELECT IdVeterinario, Nome, Especialidade
+FROM Veterinarios
+WHERE NOT EXISTS (
+	SELECT 1
+	FROM Atendimentos
+	WHERE Atendimentos.IdAtendimento = Veterinarios.IdVeterinario
+	AND Status = 'Realizado'
+	AND DataAtendimento >= '2026-09-01' AND DataAtendimento < '2026-10-01'
+);
+
+
+
 --Quais atendimentos realizados custaram mais que a média dos atendimentos realizados? 
 --Mostre o id, a data e o total, do maior para o menor. 
 --Não use a view da Q2: calcule o total de cada atendimento numa subconsulta no FROM.
