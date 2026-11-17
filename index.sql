@@ -71,3 +71,51 @@ SET STATISTICS IO OFF;
 --   DBCC CHECKALLOC verifica a consistência de alocação de
 --   espaço em disco do banco atual.
 DBCC CHECKALLOC;
+
+-- ------------------------------------------------------------------------
+--                            EXERCÍCIOS
+-- ------------------------------------------------------------------------
+
+
+--Q7. Ligue SET STATISTICS IO ON e o plano de execução real (Ctrl+M). 
+--Busque na rede as vacinas da Luna pelo 
+--CPF da tutora, 62048193705: nome do pet, vacina, data e clínica. 
+--Anote as leituras lógicas da VacinasRede e o operador que aparece no plano.
+
+SET STATISTICS IO ON;
+
+
+select NomePet, Vacina, DataAplicacao, Clinica from VacinasRede
+where NomePet = 'Luna' and CPFTutor = '62048193705'
+
+/*
+Tabela 'VacinasRede'. Contagem de verificações 1, leituras lógicas 3075, leituras físicas 0, leituras de servidor de páginas 0, 
+leituras antecipadas 0, leituras antecipadas de servidor de páginas 0, leituras lógicas de LOB 0, leituras físicas de LOB 0, 
+leituras de servidor de páginas LOB 0, leituras antecipadas de LOB 0, leituras antecipadas do servidor de páginas LOB 0.
+
+Plano de execução: 300009/2
+
+*/
+
+
+--Q8. Crie o índice IX_VacinasRede_CPFTutor em CPFTutor e rode a busca da Q7 de novo. 
+--Depois, recrie o índice com INCLUDE das colunas que a busca mostra e rode mais uma vez. 
+--Anote as leituras e os operadores das três execuções.
+
+
+CREATE NONCLUSTERED INDEX IX_VacinasRede_CPFTutor
+    ON dbo.VacinasRede (CPFTutor);      
+               
+-- Verificar índices
+EXEC sp_helpindex 'dbo.VacinasRede';
+
+
+
+-- Otimizando ainda mais a consulta
+CREATE NONCLUSTERED INDEX IX_VacinasRede_CPFTutor
+    ON dbo.VacinasRede (CPFTutor)
+    include (NomePet, Vacina, DataAplicacao, Clinica)
+    with (drop_existing = on); 
+
+
+-- Verificar custo estimado de CPU
