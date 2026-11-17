@@ -117,5 +117,5 @@ CREATE NONCLUSTERED INDEX IX_VacinasRede_CPFTutor
     include (NomePet, Vacina, DataAplicacao, Clinica)
     with (drop_existing = on); 
 
-
 -- Verificar custo estimado de CPU
+
