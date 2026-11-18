@@ -119,3 +119,137 @@ CREATE NONCLUSTERED INDEX IX_VacinasRede_CPFTutor
 
 -- Verificar custo estimado de CPU
 
+
+
+
+
+
+-- --------------------------------------------------------
+--                  AULA 17/11/2026
+-- --------------------------------------------------------
+
+
+/* =========================================================
+  CHAMADO: painel "Vacinas por clínica/mês" lento às 8h
+
+  Contexto. A rede BichoFeliz tem um painel que a recepção
+  abre toda manhã. Ele mostra quantas vacinas cada clínica
+  aplicou por mês. Um analista criou uma view para isso.
+  Com poucos dados funcionava. Hoje a VacinasRede tem milhares
+  de linhas e, às 8h, com 30 recepções abrindo o painel ao
+  mesmo tempo, ele demora e a CPU do servidor dispara.
+
+  Ciclo do DBA: medir -> achar a causa -> corrigir -> medir de novo
+  ========================================================= */
+
+
+  -- 0. PREPARAÇÃO -------------------------------------------------
+-- Liga o medidor de leituras (aba Messages). Não altera o resultado.
+SET STATISTICS IO ON;
+
+-- Permite rodar o script mais de uma vez
+DROP VIEW  IF EXISTS dbo.vw_VacinasPorClinicaMes;
+DROP INDEX IF EXISTS IX_VacinasRede_Clinica_DataAplicacao ON dbo.VacinasRede;
+GO
+
+
+-- 1. A VIEW DO ANALISTA -----------------------------------------
+-- Uma view comum não guarda dados: guarda só a consulta.
+CREATE VIEW dbo.vw_VacinasPorClinicaMes
+AS
+SELECT Clinica,
+      YEAR(DataAplicacao)  AS Ano,
+      MONTH(DataAplicacao) AS Mes,
+      COUNT(*)             AS Total
+FROM dbo.VacinasRede
+GROUP BY Clinica, YEAR(DataAplicacao), MONTH(DataAplicacao);
+GO
+
+
+-- 2. REPRODUZIR O PROBLEMA --------------------------------------
+-- O painel consulta uma clínica por vez:
+SELECT * FROM dbo.vw_VacinasPorClinicaMes WHERE Clinica = 'Centro';
+-- Plano:     Clustered Index Scan na VacinasRede inteira
+-- Messages:  milhares de logical reads
+-- Causa:     o scan é na TABELA, não na view. O SQL Server expande
+--            a view e agrega milhões de linhas a cada execução,
+--            para devolver poucas dezenas.
+
+EXEC sp_helpindex 'dbo.VacinasRede'
+SELECT DISTINCT Clinica FROM VacinasRede;
+
+-- 3. PRIMEIRA CORREÇÃO: índice na tabela base -------------------
+CREATE NONCLUSTERED INDEX IX_VacinasRede_Clinica_DataAplicacao
+   ON dbo.VacinasRede (Clinica, DataAplicacao);
+
+SELECT * FROM dbo.vw_VacinasPorClinicaMes WHERE Clinica = 'Centro';
+-- Plano:     Index Seek (lê só as linhas da clínica Centro)
+-- Messages:  as leituras caem bastante
+-- O índice é da tabela; a view se beneficia sem mudar nada.
+
+
+
+SELECT * FROM dbo.vw_VacinasPorClinicaMes;
+-- Plano:     Index Scan (varre o índice inteiro) + agregação
+-- Messages:  ainda muitas leituras
+-- Causa:     índice ajuda a ACHAR linhas, não evita CONTAR.
+--            Todas as linhas continuam sendo lidas e agregadas.
+
+
+-- CRIAR UMA VIEW INDEXADA 
+-- SCHEMABINDING  -> trava a tabela base: impedir DROP TABLE e ALTER TABLE (obrigatório)
+-- ALTER VIEW
+
+ALTER VIEW dbo.vw_VacinasPorClinicaMes
+WITH SCHEMABINDING
+AS 
+SELECT Clinica,
+      YEAR(DataAplicacao)  AS Ano,
+      MONTH(DataAplicacao) AS Mes,
+      COUNT_BIG(*)         AS Total --Obrigatório
+FROM dbo.VacinasRede
+GROUP BY Clinica, YEAR(DataAplicacao), MONTH(DataAplicacao);
+GO
+
+-- criar o indice clusterizado
+CREATE UNIQUE CLUSTERED INDEX IX_vw_VacinasPorClinicaMes
+	ON vw_VacinasPorClinicaMes (Clinica, Ano, Mes)
+
+SELECT * FROM dbo.vw_VacinasPorClinicaMes WITH (NOEXPAND)
+
+SELECT * FROM dbo.vw_VacinasPorClinicaMes WITH (NOEXPAND)
+WHERE Clinica = 'Centro'
+
+-- CRIAR UM INDICE NÃO CLUSTERIZADO
+CREATE NONCLUSTERED INDEX IX_vw_VacinasPorClicaMes_AnoMes
+	ON dbo.vw_VacinasPorClinicaMes (Ano, Mes)
+	INCLUDE (Total)
+
+	EXEC sp_helpindex 'dbo.VacinasRede'
+
+SELECT Clinica, Total
+FROM dbo.vw_VacinasPorClinicaMes WITH (NOEXPAND)
+WHERE Ano = 2026 AND Mes = 9
+
+
+-- ---------------------------------------------------
+
+
+-- P5. Para cada pet que nunca tomou vacina na Bicho Feliz, mostre as vacinas registradas na rede, 
+-- com a data, a clínica e a situação: Em dia, Vencida ou Sem registro na rede. 
+-- Rode a consulta, anote as leituras da VacinasRede, crie o índice IX_VacinasRede_CPFTutor_NomePet 
+-- que cobre a busca e rode de novo. Deixe os dois números num comentário.
+
+select * from Pets;
+
+select * from Tutores;
+
+select * from Atendimentos;
+
+select * from ItensAtendimento;
+
+select * from Servicos;
+
+
+
+select Pets.IdPet, Atendimentos.IdPet
